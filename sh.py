@@ -1,20 +1,18 @@
-import json
-from typing import Tuple, List, Any
-
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
 import datetime
+import json
+import time
 
 from bs4 import BeautifulSoup
-
-import time
+from selenium import webdriver
+from selenium.webdriver import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 wek = {'1': 'пн', '2': 'вт', '3': 'ср', '4': 'чт', '5': 'пт', '6': 'сб', '7': 'вс', }
 
-day_in_month = {'01':31, '02':28, '03':31, '04':30, '05':31, '06':30, '07':31, '08':31, '09':30, '10':31, '11':30, '12':31}
+day_in_month = {'01': 31, '02': 28, '03': 31, '04': 30, '05': 31, '06': 30, '07': 31, '08': 31, '09': 30, '10': 31,
+                '11': 30, '12': 31}
 
 
 class Lesson():
@@ -31,14 +29,17 @@ class Day():
         self.lessons = lessons
 
 
-def get_table_from_site(group: int) -> str:
-    grp = group
-
-    url = f'https://tulsu.ru/schedule/?search={grp}'
+# Получаем таблицу с сайта в HTML формате
+def dawnloadRawTable(group: int) -> str:
+    url = f'https://tulsu.ru/schedule/'
 
     driver = webdriver.Chrome()
 
     driver.get(url)
+    search_input = driver.find_element('css selector', '.search')
+    search_input.send_keys(f'{group}')
+    search_input.send_keys(Keys.ENTER)
+    time.sleep(5)
 
     table_selector = "table.schedule"  # Замените на селектор своей таблицы
     wait_time = 5000  # Замените на необходимое количество секунд
@@ -59,7 +60,8 @@ def get_table_from_site(group: int) -> str:
     driver.quit()
 
 
-def get_table_from_files(file_name: str):
+# Получаем строку из
+def get_data_from_json(file_name: str) -> str:
     with open(file_name, 'r') as file:
         lines = file.readlines()
 
@@ -67,7 +69,7 @@ def get_table_from_files(file_name: str):
     return result
 
 
-def transorm(column) -> list[str]:
+def transorm(column) -> tuple[str, str, str, str | None | BeautifulSoup, str]:
     soup1 = BeautifulSoup(str(column), 'html.parser')
 
     # Проверяем наличие данных в столбце
@@ -87,7 +89,9 @@ def transorm(column) -> list[str]:
         # print('Вид занятия:', lesson_type_element)
         # print('Преподаватель:', teacher_element)
         # print('Кабинет:', cabinet_element)
-        lesson = [subject_element, time_element, cabinet_element, teacher_element, lesson_type_element]
+        lesson: tuple[str, str, str, str | None | BeautifulSoup, str] = (
+            subject_element, time_element, cabinet_element, teacher_element, lesson_type_element
+        )
         return lesson
 
     else:
@@ -131,15 +135,13 @@ def save_dict(dictionary: dict, file_name: str) -> None:
         json.dump(dictionary, file)
 
 
-def load_dict(file_name: str) -> dict:
+def get_schedule_dict(file_name: str) -> dict:
     with open(file_name, 'r') as file:
-        sche = json.load(file)
-
-    return sche
+        return json.load(file)
 
 
 def update_shedule() -> None:
-    data = get_table_from_site(121111)
+    data = dawnloadRawTable(121111)
     soup = BeautifulSoup(data, 'html.parser')
     rows = soup.find_all('tr')
 
@@ -159,7 +161,7 @@ def update_shedule() -> None:
 
 
 def get_day_schedule():
-    d = load_dict('schedule.json')
+    d = get_schedule_dict('schedule.json')
     print(d)
 
     day_number = str(datetime.date.isoweekday(datetime.date.today()))
@@ -172,15 +174,14 @@ def get_day_schedule():
     return d[date]
 
 
-def get_courent_day(day:str, num_day:int, schedule:dict):
-
+def get_courent_day(day: str, num_day: int, schedule: dict):
     date = day.split('-')
 
     date = wek[str(num_day)] + ', ' + str(date[2]) + '.' + str(date[1])
     return schedule[date]
 
 
-def get_all_week()->list[str]:
+def get_all_week() -> list[str]:
     week_day = datetime.datetime.now().isocalendar()[2]
 
     start_date = datetime.datetime.now() - datetime.timedelta(days=week_day)
@@ -188,37 +189,25 @@ def get_all_week()->list[str]:
     dates = [str((start_date + datetime.timedelta(days=i)).date()) for i in range(7)]
     return dates
 
-def get_week_schedule() -> tuple[list[list], list[str]]:
-    week_days  = []
 
-    d = load_dict('schedule.json')
+def get_week_schedule() -> tuple[list[list], list[str]]:
+    week_days = []
+
+    d = get_schedule_dict('schedule.json')
     dates: list[str] = get_all_week()
 
     for i in range(1, 7):
-
         week_days.append(get_courent_day(dates[i], i, d))
     dates.pop(0)
 
     return week_days, dates
 
 
+# print(get_week_schedule())
 
 
-print(get_week_schedule())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    print(get_data_from_json('schedule.json'))
 # d = get_dict(row1, row2, row3, row4,row5,row6,row7,row8,head)
 # save_dict(d, 'schedule.json')
 # print(d)
