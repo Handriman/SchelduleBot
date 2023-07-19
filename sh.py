@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 wek = {'1': 'пн', '2': 'вт', '3': 'ср', '4': 'чт', '5': 'пт', '6': 'сб', '7': 'вс', }
@@ -15,22 +15,8 @@ day_in_month = {'01': 31, '02': 28, '03': 31, '04': 30, '05': 31, '06': 30, '07'
                 '11': 30, '12': 31}
 
 
-class Lesson():
-    def __init__(self, name, time, location, teacher, type):
-        self.name = name
-        self.time = time
-        self.location = location
-        self.teacher = teacher
-        self.type = type
-
-
-class Day():
-    def __init__(self, lessons: list[Lesson]):
-        self.lessons = lessons
-
-
 # Получаем таблицу с сайта в HTML формате
-def dawnloadRawTable(group: int) -> str:
+def dwn_raw_table(group: int) -> str:
     url = f'https://tulsu.ru/schedule/'
 
     driver = webdriver.Chrome()
@@ -46,7 +32,7 @@ def dawnloadRawTable(group: int) -> str:
 
     try:
         table = WebDriverWait(driver, wait_time).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, table_selector))
+            ec.presence_of_element_located((By.CSS_SELECTOR, table_selector))
         )
         table_data = table.get_attribute("outerHTML")
         # Здесь можно добавить код для обработки и анализа данных из таблицы\
@@ -69,7 +55,7 @@ def get_data_from_json(file_name: str) -> str:
     return result
 
 
-def transorm(column) -> tuple[str, str, str, str | None | BeautifulSoup, str]:
+def transform(column) -> str:
     soup1 = BeautifulSoup(str(column), 'html.parser')
 
     # Проверяем наличие данных в столбце
@@ -89,9 +75,11 @@ def transorm(column) -> tuple[str, str, str, str | None | BeautifulSoup, str]:
         # print('Вид занятия:', lesson_type_element)
         # print('Преподаватель:', teacher_element)
         # print('Кабинет:', cabinet_element)
-        lesson: tuple[str, str, str, str | None | BeautifulSoup, str] = (
-            subject_element, time_element, cabinet_element, teacher_element, lesson_type_element
-        )
+        temp_lesson = [time_element, subject_element, lesson_type_element, cabinet_element, teacher_element]
+        for ind, part in enumerate(temp_lesson):
+            if part == None: temp_lesson.pop(ind)
+
+        lesson = '\n'.join(part for part in temp_lesson)
         return lesson
 
     else:
@@ -103,31 +91,26 @@ def get_dict(row1, row2, row3, row4, row5, row6, row7, row8, head) -> dict:
     result = {}
 
     for i in range(1, 148):
-        temp = {head[i].text: [
-            transorm(row1[i]),
-            transorm(row2[i]),
-            transorm(row3[i]),
-            transorm(row4[i]),
-            transorm(row5[i]),
-            transorm(row6[i]),
-            transorm(row7[i]),
-            transorm(row8[i]),
-        ]}
+        final_rows = [
+            transform(row1[i]),
+            transform(row2[i]),
+            transform(row3[i]),
+            transform(row4[i]),
+            transform(row5[i]),
+            transform(row6[i]),
+            transform(row7[i]),
+            transform(row8[i]),
+        ]
+        # print(final_rows)
+        without_none = []
+        for ind in range(len(final_rows)):
+            if final_rows[ind] is not None:
+                without_none.append(final_rows[ind])
+        final_rows = without_none
+        temp = {head[i].text[4::]: final_rows}
         result.update(temp)
-
+    print(result)
     return result
-
-
-def read_file(file_name: str):
-    with open(file_name, 'r') as file:
-        row = file.readlines()
-
-    return row
-
-
-def write_in_file(file_name: str, data) -> None:
-    with open(file_name, 'w') as file:
-        file.writelines(data)
 
 
 def save_dict(dictionary: dict, file_name: str) -> None:
@@ -141,7 +124,7 @@ def get_schedule_dict(file_name: str) -> dict:
 
 
 def update_shedule() -> None:
-    data = dawnloadRawTable(121111)
+    data = dwn_raw_table(121111)
     soup = BeautifulSoup(data, 'html.parser')
     rows = soup.find_all('tr')
 
@@ -207,7 +190,7 @@ def get_week_schedule() -> tuple[list[list], list[str]]:
 
 
 if __name__ == "__main__":
-    print(get_data_from_json('schedule.json'))
+    update_shedule()
 # d = get_dict(row1, row2, row3, row4,row5,row6,row7,row8,head)
 # save_dict(d, 'schedule.json')
 # print(d)

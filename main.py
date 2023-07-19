@@ -1,21 +1,12 @@
-from time import sleep
-
 import telebot
-from telebot.async_telebot import AsyncTeleBot
 from telebot import types
-from telebot.types import KeyboardButton
 
 import configure
-import asyncio
-import aiohttp
-import sh
-
-import selenium
-from bs4 import BeautifulSoup
 
 # bot = AsyncTeleBot(configure.config['token'])
 # telebot.types.BotCommand('test_command', 'it\'s a test description for test command')
-
+import getSchedule
+import sh
 
 token = configure.config['token']
 
@@ -26,10 +17,14 @@ bot = telebot.TeleBot(token)
 def start_message(message):
     bot.send_message(message.chat.id, 'Привет')
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    item1 = types.KeyboardButton('Кнопка')
-    item2 = types.KeyboardButton('Расписание на сегодня')
+    item1 = types.KeyboardButton('Расписание на сегодня')
+    item2 = types.KeyboardButton('Расписание на завтра')
+    item3 = types.KeyboardButton('Расписание на эту неделю')
+    item4 = types.KeyboardButton('Расписание на следующую неделю')
     markup.add(item1)
     markup.add(item2)
+    markup.add(item3)
+    markup.add(item4)
     bot.send_message(message.chat.id, 'Выберите что вам надо', reply_markup=markup)
 
 
@@ -47,33 +42,19 @@ def button_message(message):
 
 
 @bot.message_handler(content_types=['text'])
-def schedule_today(message):
+def reply_on_text(message):
+    schedule = sh.get_schedule_dict('schedule.json')
     if message.text == 'Расписание на сегодня':
-        d = sh.get_day_schedule()
-        res = ''
-        temp = ''
-        for les in d:
-            if les != None:
-                temp = '\n'.join(part for part in les)
-                res = res + '\n' + temp
-        bot.send_message(message.chat.id, res)
+        one_day_schedule = getSchedule.get_day_schedule(schedule)
+        bot.send_message(message.chat.id, one_day_schedule)
+    if message.text == 'Расписание на завтра':
+        one_day_schedule = getSchedule.get_tomorrow_schedule(schedule)
+        bot.send_message(message.chat.id, one_day_schedule)
+    if message.text == 'Расписание на эту неделю':
+        week_schedule = getSchedule.get_week_schedule(schedule)
+        for day in week_schedule:
+            bot.send_message(message.chat.id, day)
 
-    if message.text == 'Расписание на неделю':
-
-        res = ''
-        week_days, dates = sh.get_week_schedule()
-        for i in range(len(dates)):
-            res = dates[i]
-            for lesson in week_days[i]:
-                if lesson != None:
-                    temp = '\n'.join(str(part) for part in lesson)
-                    res = res + '\n' + temp
-            bot.send_message(message.chat.id, res)
-
-
-@bot.message_handler(content_types=['text'])
-def schedule_week(message):
-    print('DLF:JDSJF:LKSDJ:FJK')
 
 
 
