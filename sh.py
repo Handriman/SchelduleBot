@@ -87,21 +87,14 @@ def transform(column) -> str:
         # print('Столбец пуст')
 
 
-def get_dict(row1, row2, row3, row4, row5, row6, row7, row8, head) -> dict:
+# def get_dict(row1, row2, row3, row4, row5, row6, row7, row8, head) -> dict:
+def get_dict(bad_rows, head) -> dict:
     result = {}
+    for i in range(1, len(bad_rows[0])):
+        final_rows = []
+        for j in range(0, len(bad_rows)):
+            final_rows.append(transform(bad_rows[j][i]))
 
-    for i in range(1, 148):
-        final_rows = [
-            transform(row1[i]),
-            transform(row2[i]),
-            transform(row3[i]),
-            transform(row4[i]),
-            transform(row5[i]),
-            transform(row6[i]),
-            transform(row7[i]),
-            transform(row8[i]),
-        ]
-        # print(final_rows)
         without_none = []
         for ind in range(len(final_rows)):
             if final_rows[ind] is not None:
@@ -109,8 +102,29 @@ def get_dict(row1, row2, row3, row4, row5, row6, row7, row8, head) -> dict:
         final_rows = without_none
         temp = {head[i].text[4::]: final_rows}
         result.update(temp)
-    print(result)
     return result
+
+    # for i in range(1, 148):
+    #     final_rows = [
+    #         transform(row1[i]),
+    #         transform(row2[i]),
+    #         transform(row3[i]),
+    #         transform(row4[i]),
+    #         transform(row5[i]),
+    #         transform(row6[i]),
+    #         transform(row7[i]),
+    #         transform(row8[i]),
+    #     ]
+    #     # print(final_rows)
+    #     without_none = []
+    #     for ind in range(len(final_rows)):
+    #         if final_rows[ind] is not None:
+    #             without_none.append(final_rows[ind])
+    #     final_rows = without_none
+    #     temp = {head[i].text[4::]: final_rows}
+    #     result.update(temp)
+    # print(result)
+    # return result
 
 
 def save_dict(dictionary: dict, file_name: str) -> None:
@@ -129,17 +143,21 @@ def update_shedule() -> None:
     rows = soup.find_all('tr')
 
     head = rows[0].find_all('th')
+    td_rows = []
+    for i in range(1, len(rows)):
+        td_rows.append(rows[i].find_all('td'))
+    # row1 = rows[1].find_all('td')
+    # row2 = rows[2].find_all('td')
+    # row3 = rows[3].find_all('td')
+    # row4 = rows[4].find_all('td')
+    # row5 = rows[5].find_all('td')
+    # row6 = rows[6].find_all('td')
+    # row7 = rows[7].find_all('td')
+    # row8 = rows[8].find_all('td')
 
-    row1 = rows[1].find_all('td')
-    row2 = rows[2].find_all('td')
-    row3 = rows[3].find_all('td')
-    row4 = rows[4].find_all('td')
-    row5 = rows[5].find_all('td')
-    row6 = rows[6].find_all('td')
-    row7 = rows[7].find_all('td')
-    row8 = rows[8].find_all('td')
-
-    d = get_dict(row1, row2, row3, row4, row5, row6, row7, row8, head)
+    # d = get_dict(row1, row2, row3, row4, row5, row6, row7, row8, head)
+    d = get_dict(td_rows, head)
+    print(d)
     save_dict(d, 'schedule.json')
 
 

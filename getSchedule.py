@@ -13,37 +13,72 @@ def normalize_date(bad_date: str) -> str:
     pass
 
 
+def find_nearest(schedule: dict, bad_date: str) -> str:
+
+    keys = list(schedule.keys())
+    return keys[0]
+
+
+
+
 def get_day_schedule(schedule: dict) -> str:
-    shift_date = datetime.datetime.now() - datetime.timedelta(days=120)
+    current_date = datetime.datetime.now()
+    current_normal_date = normalize_date(str(current_date))
+    try:
+        schedule_list = schedule[current_normal_date]
+        result_string = wek[str(datetime.date.isoweekday(
+            current_date))] + ', ' + current_normal_date + '\n___________________________________\n '
 
-    current_date = normalize_date(str(shift_date.date()))
+        if len(schedule_list) != 0:
+            for el in schedule_list:
+                result_string = result_string + el + '\n------------------------------------------------------\n'
+        else:
+            result_string += 'Занятий нет, можно отдохнуть'
+        return result_string
+    except KeyError:
+        ne_date = find_nearest(schedule, current_normal_date)
+        schedule_list = schedule[ne_date]
+        result_string = ne_date + '\n___________________________________\n '
 
-    result_string = wek[str(datetime.date.isoweekday(
-        shift_date.date()))] + ', ' + current_date + '\n___________________________________\n '
-
-    for el in schedule[current_date]:
-        result_string = result_string + el + '\n------------------------------------------------------\n'
-    print(current_date, )
-    return result_string
+        if len(schedule_list) != 0:
+            for el in schedule_list:
+                result_string = result_string + el + '\n------------------------------------------------------\n'
+        else:
+            result_string += 'Занятий нет, можно отдохнуть'
+        return result_string
 
 
 def get_tomorrow_schedule(schedule: dict) -> str:
-    shift_date = datetime.datetime.now() - datetime.timedelta(days=120)
+    current_date = datetime.datetime.now()
 
-    tomorrow_date = normalize_date(
-        str((shift_date + datetime.timedelta(days=1)).date()))
+    tomorrow_date = (current_date + datetime.timedelta(days=1)).date()
+    normal_tomorrow = normalize_date(str(tomorrow_date))
+    try:
+        schedule_list = schedule[normal_tomorrow]
+        result_string = wek[str(datetime.date.isoweekday(
+            tomorrow_date))] + ', ' + normal_tomorrow + '\n___________________________________\n '
 
-    result_string = wek[str(datetime.date.isoweekday((shift_date + datetime.timedelta(
-        days=1)).date()))] + ', ' + tomorrow_date + '\n___________________________________\n '
+        if len(schedule_list) != 0:
+            for el in schedule_list:
+                result_string = result_string + el + '\n------------------------------------------------------\n'
+        else:
+            result_string += 'Занятий нет, можно отдохнуть'
+        return result_string
+    except KeyError:
+        ne_date = find_nearest(schedule, normal_tomorrow)
+        schedule_list = schedule[ne_date]
+        result_string = ne_date + '\n___________________________________\n '
 
-    for el in schedule[tomorrow_date]:
-        result_string = result_string + el + '\n------------------------------------------------------\n'
-
-    return result_string
+        if len(schedule_list) != 0:
+            for el in schedule_list:
+                result_string = result_string + el + '\n------------------------------------------------------\n'
+        else:
+            result_string += 'Занятий нет, можно отдохнуть'
+        return result_string
 
 
 def get_week_schedule(schedule: dict) -> tuple:
-    shift_date = datetime.datetime.now() - datetime.timedelta(days=120)
+    shift_date = datetime.datetime.now()
 
     week_day = shift_date.date().isocalendar()[2]
     start_date = shift_date - datetime.timedelta(days=week_day - 1)
@@ -51,14 +86,18 @@ def get_week_schedule(schedule: dict) -> tuple:
     dates = tuple(normalize_date(str((start_date + datetime.timedelta(days=i)).date())) for i in range(7))
 
     result_tuple = []
-    for ind, date in enumerate(dates):
-        final_string = wek[str(ind + 1)] + ', ' + date + '\n___________________________________\n '
-        for el in schedule[date]:
-            final_string += el + '\n------------------------------------------------------\n'
+    try:
+        for ind, date in enumerate(dates):
+            final_string = wek[str(ind + 1)] + ', ' + date + '\n___________________________________\n '
+            for el in schedule[date]:
+                final_string += el + '\n------------------------------------------------------\n'
 
-        result_tuple.append(final_string)
+            result_tuple.append(final_string)
 
-    return tuple(result_tuple)
+        return tuple(result_tuple)
+    except:
+        a = ['Пока учеба не началась, эта функция не работает']
+        return tuple(a)
 
 
 def get_nex_week_schedule() -> tuple:
