@@ -79,7 +79,7 @@ def transform(column) -> str:
         for ind, part in enumerate(temp_lesson):
             if part == None: temp_lesson.pop(ind)
 
-        lesson = '\n'.join(part for part in temp_lesson)
+        lesson = '|'.join(part for part in temp_lesson)
         return lesson
 
     else:
@@ -87,7 +87,6 @@ def transform(column) -> str:
         # print('Столбец пуст')
 
 
-# def get_dict(row1, row2, row3, row4, row5, row6, row7, row8, head) -> dict:
 def get_dict(bad_rows, head) -> dict:
     result = {}
     for i in range(1, len(bad_rows[0])):
@@ -100,31 +99,30 @@ def get_dict(bad_rows, head) -> dict:
             if final_rows[ind] is not None:
                 without_none.append(final_rows[ind])
         final_rows = without_none
-        temp = {head[i].text[4::]: final_rows}
+        new_list = []
+        for les in final_rows:
+
+            les_list = les.split('|')
+            if len(les_list) == 5:
+                temp_dict = {
+                    'time': les_list[0],
+                    'subject': les_list[1],
+                    'type': les_list[2],
+                    'location': les_list[3],
+                    'teacher': les_list[4]
+                }
+            else:
+                temp_dict = {
+                    'time': les_list[0],
+                    'subject': les_list[1],
+                    'type': les_list[2],
+                    'location': les_list[3],
+                    'teacher': 'Неизвестно'
+                }
+            new_list.append(temp_dict)
+        temp = {head[i].text[4::]: new_list}
         result.update(temp)
     return result
-
-    # for i in range(1, 148):
-    #     final_rows = [
-    #         transform(row1[i]),
-    #         transform(row2[i]),
-    #         transform(row3[i]),
-    #         transform(row4[i]),
-    #         transform(row5[i]),
-    #         transform(row6[i]),
-    #         transform(row7[i]),
-    #         transform(row8[i]),
-    #     ]
-    #     # print(final_rows)
-    #     without_none = []
-    #     for ind in range(len(final_rows)):
-    #         if final_rows[ind] is not None:
-    #             without_none.append(final_rows[ind])
-    #     final_rows = without_none
-    #     temp = {head[i].text[4::]: final_rows}
-    #     result.update(temp)
-    # print(result)
-    # return result
 
 
 def save_dict(dictionary: dict, file_name: str) -> None:
@@ -137,6 +135,36 @@ def get_schedule_dict(file_name: str) -> dict:
         return json.load(file)
 
 
+
+def fix_date(schedule: dict):
+    first_year, second_year = 0, 0
+
+    keys = list(schedule.keys())
+    new_keys = []
+
+    current_date = datetime.datetime.now()
+
+    if 8 <= current_date.month <= 12:
+        first_year = current_date.year
+        second_year = first_year + 1
+    elif 1 <= current_date.month < 8:
+        second_year = current_date.year
+        first_year = second_year - 1
+
+    for i, key in enumerate(keys):
+        month = int(key.split('.')[1])
+        if 8 <= month <= 12:
+            new_keys.append(key+'.'+str(first_year))
+        elif 1 <= month < 8:
+            new_keys.append(key+'.'+str(second_year))
+    new_dict = {}
+    for i in range(len(keys)):
+        new_dict[new_keys[i]] = schedule[keys[i]]
+
+    return new_dict
+
+
+
 def update_shedule() -> None:
     data = dwn_raw_table(121111)
     soup = BeautifulSoup(data, 'html.parser')
@@ -146,69 +174,16 @@ def update_shedule() -> None:
     td_rows = []
     for i in range(1, len(rows)):
         td_rows.append(rows[i].find_all('td'))
-    # row1 = rows[1].find_all('td')
-    # row2 = rows[2].find_all('td')
-    # row3 = rows[3].find_all('td')
-    # row4 = rows[4].find_all('td')
-    # row5 = rows[5].find_all('td')
-    # row6 = rows[6].find_all('td')
-    # row7 = rows[7].find_all('td')
-    # row8 = rows[8].find_all('td')
-
-    # d = get_dict(row1, row2, row3, row4, row5, row6, row7, row8, head)
     d = get_dict(td_rows, head)
+    d = fix_date(d)
     print(d)
+
     save_dict(d, 'schedule.json')
-
-
-def get_day_schedule():
-    d = get_schedule_dict('schedule.json')
-    print(d)
-
-    day_number = str(datetime.date.isoweekday(datetime.date.today()))
-    date = str(datetime.date.today()).split('-')
-
-    date = wek[day_number] + ', ' + str(date[2]) + '.' + str(date[1])
-
-    print(date)
-    print(d[date])
-    return d[date]
-
-
-def get_courent_day(day: str, num_day: int, schedule: dict):
-    date = day.split('-')
-
-    date = wek[str(num_day)] + ', ' + str(date[2]) + '.' + str(date[1])
-    return schedule[date]
-
-
-def get_all_week() -> list[str]:
-    week_day = datetime.datetime.now().isocalendar()[2]
-
-    start_date = datetime.datetime.now() - datetime.timedelta(days=week_day)
-
-    dates = [str((start_date + datetime.timedelta(days=i)).date()) for i in range(7)]
-    return dates
-
-
-def get_week_schedule() -> tuple[list[list], list[str]]:
-    week_days = []
-
-    d = get_schedule_dict('schedule.json')
-    dates: list[str] = get_all_week()
-
-    for i in range(1, 7):
-        week_days.append(get_courent_day(dates[i], i, d))
-    dates.pop(0)
-
-    return week_days, dates
-
-
-# print(get_week_schedule())
 
 
 if __name__ == "__main__":
     update_shedule()
+
 # d = get_dict(row1, row2, row3, row4,row5,row6,row7,row8,head)
 # save_dict(d, 'schedule.json')
 # print(d)
