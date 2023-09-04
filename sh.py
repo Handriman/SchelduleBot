@@ -166,6 +166,7 @@ def fix_date(schedule: dict):
 
 
 def update_shedule() -> None:
+    print('Starting update')
     data = dwn_raw_table(121111)
     soup = BeautifulSoup(data, 'html.parser')
     rows = soup.find_all('tr')
@@ -176,9 +177,10 @@ def update_shedule() -> None:
         td_rows.append(rows[i].find_all('td'))
     d = get_dict(td_rows, head)
     d = fix_date(d)
-    print(d)
+    # print(d)
 
     save_dict(d, 'schedule.json')
+    print('update complete')
 
 
 if __name__ == "__main__":

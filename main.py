@@ -26,14 +26,18 @@ now_date = datetime.datetime.now()
 def time_update():
     global now_date
     while True:
-        if (now_date + datetime.timedelta(hours=12)) < datetime.datetime.now():
+        if (now_date + datetime.timedelta(hours=6)) < datetime.datetime.now():
+            bot.send_message(384573724, 'начинаю обновление расписания')
             try:
                 sh.update_shedule()
+                bot.send_message(384573724, 'Расписание обновлено успешно')
             except:
+                bot.send_message(384573724, 'Расписание не обновлено, ошибка')
                 pass
             now_date = datetime.datetime.now()
+
         else:
-            sleep(21600)
+            sleep(10800)
 
 
 thread1 = threading.Thread(target=time_update)
