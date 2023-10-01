@@ -1,6 +1,5 @@
 import datetime
 
-import sh
 
 wek = {'1': 'понедельник', '2': 'вторник', '3': 'среда', '4': 'четверг', '5': 'пятница', '6': 'суббота',
        '7': 'воскресенье', }
@@ -11,7 +10,6 @@ color_dict = {
 }
 under_line = '\n___________________________________\n'
 slashed_line = '------------------------------------------------------\n'
-
 
 def normalize_date(bad_date: str) -> str:
     date_list = bad_date.split(' ')
@@ -43,8 +41,13 @@ def build_day(date: datetime.datetime, schedule: dict):
     current_normal_date = normalize_date(str(date))
 
     schedule_list = schedule[current_normal_date]
-
-    output_sting = f'{wek[str(datetime.datetime.isoweekday(date))]}, {current_normal_date}{under_line}'
+    week_number = date.isocalendar()[1]
+    odd = ''
+    if week_number % 2 == 0:
+        odd = '(чт)'
+    else:
+        odd = '(нч)'
+    output_sting = f'{odd} {wek[str(datetime.datetime.isoweekday(date))]}, {current_normal_date}{under_line}'
 
     for lesson in schedule_list:
         lesson = colorize(lesson)
@@ -151,7 +154,4 @@ def get_exam_schedule(schedule: dict) -> tuple[str]:
     pass
 
 
-if __name__ == "__main__":
-    sched = sh.get_schedule_dict('schedule.json')
-    d = datetime.datetime.now()
-    get_nex_week_schedule(sched)
+
