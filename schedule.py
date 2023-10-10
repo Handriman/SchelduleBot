@@ -17,20 +17,22 @@ class Schedule:
     _day_in_month = {'01': 31, '02': 28, '03': 31, '04': 30, '05': 31, '06': 30, '07': 31, '08': 31, '09': 30, '10': 31,
                      '11': 30, '12': 31}
 
-    def _dwn_raw_table(self, group: int) -> str:
+    @staticmethod
+    def _dwn_raw_table(group: str) -> str:
         url = f'https://tulsu.ru/schedule/'
 
         driver = webdriver.Chrome()
 
         driver.get(url)
         search_input = driver.find_element('css selector', '.search')
-        search_input.send_keys(f'{group}')
+        search_input.send_keys(group)
         search_input.send_keys(Keys.ENTER)
 
         time.sleep(5)
         try:
             driver.find_element('css selector', '.isplay-mode header__item display-mode__list').send_keys(Keys.ENTER)
-        except:
+        except Exception as E:
+            print(E)
             pass
 
         table_selector = "table.schedule"  # Замените на селектор своей таблицы
@@ -45,16 +47,17 @@ class Schedule:
             driver.quit()
             return table_data
 
-        except:
+        except Exception as E:
+            print(E)
             print("Произошла ошибка при ожидании загрузки таблицы.")
-
 
         # Закрытие браузера
         driver.quit()
 
     # Получаем строку из
 
-    def _transform(self, column) -> str:
+    @staticmethod
+    def _transform(column) -> str:
 
         soup1 = BeautifulSoup(str(column), 'html.parser')
 
@@ -89,7 +92,7 @@ class Schedule:
             pass
             # print('Столбец пуст')
 
-    def _get_dict(self, bad_rows, head) -> dict:
+    def _get_dict(self, bad_rows, head) -> dict[list[dict]]:
         result = {}
         for i in range(1, len(bad_rows[0])):
             final_rows = []
@@ -126,23 +129,22 @@ class Schedule:
 
         return result
 
-    def _save_dict(self, dictionary: dict, file_name: str) -> None:
+    @staticmethod
+    def _save_dict(dictionary: dict, file_name: str) -> None:
         with open(f"groups/{file_name}", 'w') as file:
             json.dump(dictionary, file)
 
-    def _load_dict(self, file_name: str) -> dict:
+    @staticmethod
+    def _load_dict(file_name: str) -> dict:
         with open(f"groups/{file_name}", 'r') as file:
             return json.load(file)
 
-    def _fix_date(self, schedule: dict):
-
+    @staticmethod
+    def _fix_date(schedule: dict) -> dict:
         first_year, second_year = 0, 0
-
         keys = list(schedule.keys())
         new_keys = []
-
         current_date = datetime.datetime.now()
-
         if 8 <= current_date.month <= 12:
             first_year = current_date.year
             second_year = first_year + 1
@@ -182,7 +184,7 @@ class Schedule:
 
                 return True
 
-    def update_shedule(self, group: int) -> (bool, bool):
+    def update_shedule(self, group: str) -> (bool, bool):
         print('Starting update')
         res = self.create_schedule(group=group)
         if res[0]:
@@ -193,12 +195,10 @@ class Schedule:
         else:
             return False, False
 
-    def create_schedule(self, group: int) -> (bool, dict):
+    def create_schedule(self, group: str) -> (bool, dict):
 
         try:
-
             data: str = self._dwn_raw_table(group=group)
-
             soup = BeautifulSoup(data, 'html.parser')
             rows = soup.find_all('tr')
 
@@ -214,13 +214,10 @@ class Schedule:
 
             self._save_dict(d, f'{group}.json')
             return True, d
-        except:
+        except Exception as E:
+            print(E)
             return False, {}
 
-    def get_schedule(self, group:int)-> dict:
+    def get_schedule(self, group: int) -> dict:
 
         return self._load_dict(f"{group}.json")
-
-
-
-
