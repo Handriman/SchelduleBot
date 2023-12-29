@@ -1,5 +1,7 @@
 import datetime
 import json
+import logging
+import sqlite3
 import time
 import os
 
@@ -10,6 +12,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
+import database
+import getSchedule
+
 
 class Schedule:
     _wek = {'1': 'пн', '2': 'вт', '3': 'ср', '4': 'чт', '5': 'пт', '6': 'сб', '7': 'вс', }
@@ -17,7 +22,8 @@ class Schedule:
     _day_in_month = {'01': 31, '02': 28, '03': 31, '04': 30, '05': 31, '06': 30, '07': 31, '08': 31, '09': 30, '10': 31,
                      '11': 30, '12': 31}
 
-    def _dwn_raw_table(self, group: int) -> str:
+    @staticmethod
+    def _dwn_raw_table(group: int) -> str:
         url = f'https://tulsu.ru/schedule/'
 
         driver = webdriver.Chrome()
@@ -47,7 +53,6 @@ class Schedule:
 
         except:
             print("Произошла ошибка при ожидании загрузки таблицы.")
-
 
         # Закрытие браузера
         driver.quit()
@@ -194,9 +199,7 @@ class Schedule:
             return False, False
 
     def create_schedule(self, group: int) -> (bool, dict):
-
         try:
-
             data: str = self._dwn_raw_table(group=group)
 
             soup = BeautifulSoup(data, 'html.parser')
@@ -214,13 +217,19 @@ class Schedule:
 
             self._save_dict(d, f'{group}.json')
             return True, d
-        except:
+        except Exception as e:
+            logging.critical(f'ошибка: {e}')
             return False, {}
 
-    def get_schedule(self, group:int)-> dict:
+    def get_schedule(self, group: str) -> dict:
 
         return self._load_dict(f"{group}.json")
 
 
-
-
+if __name__ == "__main__":
+    a = Schedule()
+    # a.update_shedule('820321аф')
+    d = a.get_schedule('121111')
+    # b = getSchedule.build_day(date=datetime.date.today(), schedule=d)
+    con = sqlite3.connect('bot_users.db')
+    print(database.get_all_users(con))

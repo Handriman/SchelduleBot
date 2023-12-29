@@ -12,6 +12,7 @@ import configure
 import database
 import getSchedule
 from schedule import Schedule
+import weather
 
 logging.basicConfig(filename='bot.log', level=logging.INFO)
 
@@ -19,8 +20,23 @@ token = configure.config['token']
 
 bot = telebot.TeleBot(token)
 now_date = datetime.datetime.now()
+weather_date = datetime.datetime.now()
 
 
+def weather_update():
+    global weather_date
+
+    while True:
+        if (weather_date + datetime.timedelta(hours=3)) < datetime.datetime.now():
+            try:
+                weather.update_weather()
+            except:
+                bot.send_message(384573724, 'Ошибка обновления погоды')
+
+            weather_date = datetime.datetime.now()
+
+        else:
+            sleep(10820)
 def time_update():
     global now_date
 
@@ -88,21 +104,27 @@ def register_user(message: types.Message):
         bot.register_next_step_handler_by_chat_id(message.chat.id, register_user)
         pass
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    item1 = types.KeyboardButton('Расписание на сегодня')
-    item2 = types.KeyboardButton('Расписание на завтра')
-    item3 = types.KeyboardButton('Расписание на эту неделю')
-    item4 = types.KeyboardButton('Расписание на следующую неделю')
+    item1 = types.KeyboardButton('сегодня')
+    item2 = types.KeyboardButton('завтра')
+    item3 = types.KeyboardButton('эта неделю')
+    item4 = types.KeyboardButton('след. неделю')
     item5 = types.KeyboardButton('Изменить номер группы')
-    markup.add(item1)
-    markup.add(item2)
-    markup.add(item3)
-    markup.add(item4)
+    markup.add(item1, item2)
+    markup.add(item3, item4)
     markup.add(item5)
 
     create_record(message, g)
     bot.send_message(message.chat.id, 'Вы успешно, зарегистрировались', reply_markup=markup)
 
 
+@bot.message_handler(commands=['sendAll'])
+def send_to_all(message):
+    text = message.text
+    text = text.split('@')[1]
+    con = sqlite3.connect('bot_users.db')
+    users = database.get_all_users(con)
+    for user in users:
+        bot.send_message(user[2], text)
 @bot.message_handler(commands=['all_users'])
 def get_users(message):
     con = sqlite3.connect('bot_users.db')
@@ -116,14 +138,18 @@ def get_users(message):
 
 @bot.message_handler(commands=['button'])
 def button_message(message):
-    create_record(message)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    item1 = types.KeyboardButton('Кнопка')
-    item2 = types.KeyboardButton('Расписание на сегодня')
-    item3 = types.KeyboardButton('Расписание на неделю')
-    markup.add(item1)
-    markup.add(item2)
-    markup.add(item3)
+    item1 = types.KeyboardButton('сегодня')
+    item2 = types.KeyboardButton('завтра')
+    item3 = types.KeyboardButton('эта неделя')
+    item4 = types.KeyboardButton('след. неделя')
+    item6 = types.KeyboardButton('ближайший экзамен')
+    item7 = types.KeyboardButton('сессия')
+    item5 = types.KeyboardButton('Изменить номер группы')
+    markup.add(item1, item2)
+    markup.add(item3, item4)
+    markup.add(item6, item7)
+    markup.add(item5)
 
     bot.send_message(message.chat.id, 'Выберите что вам надо', reply_markup=markup)
 
@@ -149,7 +175,7 @@ def isGroupExist(group: int) -> bool:
 def reply_on_text(message: types.Message):
     group = int(database.get_user_by_id(message.chat.id)[0][0])
     mainSchedule = Schedule()
-    if message.text == 'Расписание на сегодня':
+    if message.text == 'сегодня':
         if isGroupExist(group):
             schedule = mainSchedule.get_schedule(group=group)
             one_day_schedule = getSchedule.get_day_schedule(schedule)
@@ -166,7 +192,7 @@ def reply_on_text(message: types.Message):
                                                   'не существует, попробуйте изменить группу')
 
         logging.info(f'{message.from_user.first_name} {message.from_user.last_name},{message.chat.id}, TODAY')
-    elif message.text == 'Расписание на завтра':
+    elif message.text == 'завтра':
         if isGroupExist(group):
             schedule = mainSchedule.get_schedule(group=group)
             one_day_schedule = getSchedule.get_tomorrow_schedule(schedule)
@@ -183,7 +209,7 @@ def reply_on_text(message: types.Message):
                                                   'не существует, попробуйте изменить группу')
 
         logging.info(f'{message.from_user.first_name},{message.from_user.last_name},{message.chat.id}, TOMORROW')
-    elif message.text == 'Расписание на эту неделю':
+    elif message.text == 'эта неделя':
         if isGroupExist(group):
             schedule = mainSchedule.get_schedule(group)
             week_schedule = getSchedule.get_week_schedule(schedule)
@@ -203,7 +229,7 @@ def reply_on_text(message: types.Message):
 
 
         logging.info(f'{message.from_user.first_name} {message.from_user.last_name},{message.chat.id}, THIS_WEEK')
-    elif message.text == 'Расписание на следующую неделю':
+    elif message.text == 'след. неделя':
         if isGroupExist(group):
             schedule = mainSchedule.get_schedule(group)
             week_schedule = getSchedule.get_nex_week_schedule(schedule)
@@ -226,6 +252,44 @@ def reply_on_text(message: types.Message):
     elif message.text == 'Изменить номер группы':
         bot.send_message(message.chat.id, 'Напишите новый номер группы')
         bot.register_next_step_handler_by_chat_id(message.chat.id, change_group)
+    elif message.text == 'сессия':
+        if isGroupExist(group):
+            schedule = mainSchedule.get_schedule(group)
+            session = getSchedule.get_exam_schedule(schedule)
+            for day in session:
+                bot.send_message(message.chat.id, day)
+        else:
+            bot.send_message(message.chat.id, 'Кажется расписания для вашей группы нет, сейчас попробую его найти')
+            res = mainSchedule.create_schedule(group=group)
+            if res[0]:
+
+                session = getSchedule.get_exam_schedule(res[1])
+                for day in session:
+                    bot.send_message(message.chat.id, day)
+            else:
+                bot.send_message(message.chat.id, 'Что-то пошло не так, либо недоступен сайт тулгу, либо вашей группы '
+                                                  'не существует, попробуйте изменить группу')
+
+        logging.info(f'{message.from_user.first_name} {message.from_user.last_name},{message.chat.id}, ALL_SESSION')
+    elif message.text == 'ближайший экзамен':
+        if isGroupExist(group):
+            schedule = mainSchedule.get_schedule(group)
+            session = getSchedule.get_nearest_exem(today=now_date, schedule=schedule)
+            for day in session:
+                bot.send_message(message.chat.id, day)
+        else:
+            bot.send_message(message.chat.id, 'Кажется расписания для вашей группы нет, сейчас попробую его найти')
+            res = mainSchedule.create_schedule(group=group)
+            if res[0]:
+
+                session = getSchedule.get_nearest_exem(now_date,res[1])
+                for day in session:
+                    bot.send_message(message.chat.id, day)
+            else:
+                bot.send_message(message.chat.id, 'Что-то пошло не так, либо недоступен сайт тулгу, либо вашей группы '
+                                                  'не существует, попробуйте изменить группу')
+
+        logging.info(f'{message.from_user.first_name} {message.from_user.last_name},{message.chat.id}, ALL_SESSION')
     else:
         logging.info(f'{message.from_user.first_name} {message.from_user.last_name},{message.chat.id}, INVALID MESSAGE')
 
@@ -243,8 +307,9 @@ def change_group(message: types.Message):
 
 
 # sh.update_shedule()
-
+thread3 = threading.Thread(target=weather_update)
 thread2 = threading.Thread(target=bot.infinity_polling)
 thread1.start()
 thread2.start()
+thread3.start()
 # bot.infinity_polling()
