@@ -12,36 +12,41 @@ def get_all_users(connection) -> tuple:
     return cursor.fetchall()
 
 
-def change_user_group_by_id(id: int, group: int):
+def change_user_group_by_id(user_id: int, group: str):
     connection = connect_to_database('bot_users.db')
     cursor = connection.cursor()
     cursor.execute(f"""
     UPDATE bot_users
     SET group_number = {str(group)}
-    WHERE telegram_id = {str(id)}
+    WHERE telegram_id = {str(user_id)}
     """)
     connection.commit()
     cursor.close()
     return True
 
 
-def get_user_by_id(id: int):
+def get_user_by_id(user_id: int):
     connection = connect_to_database('bot_users.db')
     cursor = connection.cursor()
-    cursor.execute(f"SELECT group_number FROM bot_users WHERE telegram_id = {id}")
+    cursor.execute(f"SELECT group_number FROM bot_users WHERE telegram_id = {user_id}")
     return cursor.fetchall()
+
+
 def add_user(connection, user: tuple) -> bool:
     try:
         print(user)
         add_user_query = f'''
-            INSERT INTO bot_users (telegram_id,chat_id, first_name, last_name, nickname, group_number, joining_date) VALUES (?, ?, ?, ?, ?,?, ?)
+            INSERT INTO bot_users 
+            (telegram_id,chat_id, first_name, last_name, nickname, group_number, joining_date) 
+            VALUES (?, ?, ?, ?, ?,?, ?)
         '''
         cursor = connection.cursor()
         cursor.execute(add_user_query, user)
         connection.commit()
         cursor.close()
         return True
-    except:
+    except Exception as E:
+        print(E)
         return False
 
 
@@ -62,5 +67,5 @@ if __name__ == "__main__":
     # print('+')
     # cursor.close()
 
-    change_user_group_by_id(384573724, 120811)
+    change_user_group_by_id(384573724, str(120811))
     # add_user(connection, (3453, 'Tom', 'Hels', 'Ndlkj', datetime.datetime.now()))
