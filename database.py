@@ -1,3 +1,5 @@
+import logging
+import sqlite3
 import sqlite3 as sq
 
 
@@ -17,7 +19,7 @@ def change_user_group_by_id(user_id: int, group: str):
     cursor = connection.cursor()
     cursor.execute(f"""
     UPDATE bot_users
-    SET group_number = {str(group)}
+    SET group_number = '{group}'
     WHERE telegram_id = {str(user_id)}
     """)
     connection.commit()
@@ -34,6 +36,7 @@ def get_user_by_id(user_id: int):
 
 def add_user(connection, user: tuple) -> bool:
     try:
+        print('Регистрирую нового пользователя')
         print(user)
         add_user_query = f'''
             INSERT INTO bot_users 
@@ -41,10 +44,24 @@ def add_user(connection, user: tuple) -> bool:
             VALUES (?, ?, ?, ?, ?,?, ?)
         '''
         cursor = connection.cursor()
-        cursor.execute(add_user_query, user)
-        connection.commit()
-        cursor.close()
+        try:
+            cursor.execute(add_user_query, user)
+
+
+        except sqlite3.Error:
+            connection.commit()
+            cursor.close()
+            print(f'Пользователь уже зарегистрирован')
+            print('trying to change group')
+            change_user_group_by_id(user[0], user[5])
+            print('Группа уже существующего пользователя изменена')
+        # except Exception as e:
+        #     connection.commit()
+        #     cursor.close()
+        #     logging.error(f'При попытке зарегистрировать пользователя {user} произошла ошибка {e}')
+        #     return False
         return True
+
     except Exception as E:
         print(E)
         return False

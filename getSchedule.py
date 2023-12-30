@@ -13,12 +13,14 @@ color_dict = {
     '(Экзамен)': '🔴',
     '(КР)': '🔴',
     '(КП)': '🔴',
+    '(ДЗ по практике)': '🔴',
+    '(Консультации)': '🔴',
 
 }
 under_line = '\n___________________________________\n'
 slashed_line = '------------------------------------------------------\n'
 
-exam_types = ['(зч)', '(ДЗ)', '(Экзамен)', '(КР)', '(КП)']
+exam_types = ['(Консультации)', '(зч)', '(ДЗ)', '(Экзамен)', '(КР)', '(КП)', '(ДЗ по практике)']
 
 
 def normalize_date(bad_date: str) -> str:
@@ -28,7 +30,9 @@ def normalize_date(bad_date: str) -> str:
 
 
 def colorize(lesson: dict) -> dict:
-    lesson['type'] = color_dict[lesson['type']] + lesson['type']
+
+    temp_type = lesson['type']
+    lesson['type'] = color_dict[temp_type] + temp_type
     return lesson
 
 
@@ -82,6 +86,7 @@ def get_day_schedule(schedule: dict) -> str:
     current_date = datetime.datetime.now()
     try:
         output_string = build_day(current_date, schedule)
+        print('ошибка, не могу найти эту дату, почему-то')
     except KeyError:
         new_date = find_nearest(current_date, schedule)
         output_string = 'Ближайший учебный день:\n\n' + build_day(new_date, schedule)
@@ -150,7 +155,7 @@ def get_nex_week_schedule(schedule: dict) -> tuple:
             pass
 
     if len(result_tuple) == 0:
-        print(0000000)
+  
         new_date = find_nearest(start_date, schedule)
 
         week_day = new_date.date().isocalendar()[2]
@@ -175,6 +180,7 @@ def get_exam_schedule(schedule: dict[list[dict]]) -> tuple[datetime] | tuple[str
     for item in schedule.items():
         for lesson in item[1]:
             if lesson['type'] in exam_types:
+                print(lesson, item[0])
                 day, month, year = item[0].split('.')
 
                 # Преобразовать строки в целочисленные значения
@@ -182,7 +188,8 @@ def get_exam_schedule(schedule: dict[list[dict]]) -> tuple[datetime] | tuple[str
 
                 # Создать экземпляр datetime.date
                 date_obj = datetime.date(year, month, day)
-                exam_dates.append(date_obj)
+                if date_obj not in exam_dates:
+                    exam_dates.append(date_obj)
 
     if len(exam_dates) == 0:
         return tuple(['Сессия не найдена'])
@@ -199,6 +206,7 @@ def get_nearest_exem(today: datetime.datetime, schedule: dict[list[dict]]) -> tu
     for item in schedule.items():
         for lesson in item[1]:
             if lesson['type'] in exam_types:
+                print(lesson)
                 day, month, year = item[0].split('.')
 
                 # Преобразовать строки в целочисленные значения

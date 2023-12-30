@@ -26,7 +26,7 @@ class Schedule:
     def _dwn_raw_table(group: int) -> str:
         url = f'https://tulsu.ru/schedule/'
 
-        driver = webdriver.Chrome()
+        driver = webdriver.Firefox()
 
         driver.get(url)
         search_input = driver.find_element('css selector', '.search')
@@ -228,8 +228,7 @@ class Schedule:
 
 if __name__ == "__main__":
     a = Schedule()
-    # a.update_shedule('820321аф')
+    a.update_shedule('820321аф')
     d = a.get_schedule('121111')
     # b = getSchedule.build_day(date=datetime.date.today(), schedule=d)
-    con = sqlite3.connect('bot_users.db')
-    print(database.get_all_users(con))
+

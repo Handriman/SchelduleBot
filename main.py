@@ -74,7 +74,7 @@ def time_update():
 thread1 = threading.Thread(target=time_update)
 
 
-def create_record(message: types.Message, g: int) -> bool:
+def create_record(message: types.Message, g) -> bool:
     connection = sqlite3.connect('bot_users.db')
     a = database.add_user(connection, tuple(
         [message.from_user.id, message.chat.id, message.from_user.first_name, message.from_user.last_name,
@@ -97,20 +97,20 @@ def start_message(message):
 
 
 def register_user(message: types.Message):
-    try:
-        g = int(message.text)
-    except ValueError:
-        bot.send_message(message.chat.id, 'Неправильный номер группы')
-        bot.register_next_step_handler_by_chat_id(message.chat.id, register_user)
-        pass
+
+    g = message.text
+
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton('сегодня')
     item2 = types.KeyboardButton('завтра')
-    item3 = types.KeyboardButton('эта неделю')
-    item4 = types.KeyboardButton('след. неделю')
+    item3 = types.KeyboardButton('эта неделя')
+    item4 = types.KeyboardButton('след. неделя')
+    item6 = types.KeyboardButton('ближайший экзамен')
+    item7 = types.KeyboardButton('сессия')
     item5 = types.KeyboardButton('Изменить номер группы')
     markup.add(item1, item2)
     markup.add(item3, item4)
+    markup.add(item6, item7)
     markup.add(item5)
 
     create_record(message, g)
@@ -154,7 +154,7 @@ def button_message(message):
     bot.send_message(message.chat.id, 'Выберите что вам надо', reply_markup=markup)
 
 
-def isGroupExist(group: int) -> bool:
+def isGroupExist(group: str) -> bool:
     groups_numbers = os.listdir("groups")
     groups_numbers = [el[:-5] for el in groups_numbers]
 
@@ -165,7 +165,7 @@ def isGroupExist(group: int) -> bool:
 
     groups_numbers = new
 
-    if str(group) in groups_numbers:
+    if group in groups_numbers:
         return True
     else:
         return False
@@ -173,11 +173,13 @@ def isGroupExist(group: int) -> bool:
 
 @bot.message_handler(content_types=['text'])
 def reply_on_text(message: types.Message):
-    group = int(database.get_user_by_id(message.chat.id)[0][0])
+    group = str(database.get_user_by_id(message.chat.id)[0][0])
+    print('группа', group)
     mainSchedule = Schedule()
     if message.text == 'сегодня':
         if isGroupExist(group):
             schedule = mainSchedule.get_schedule(group=group)
+
             one_day_schedule = getSchedule.get_day_schedule(schedule)
             bot.send_message(message.chat.id, one_day_schedule)
         else:
@@ -296,7 +298,7 @@ def reply_on_text(message: types.Message):
 
 def change_group(message: types.Message):
     try:
-        g = int(message.text)
+        g = message.text
     except ValueError:
         bot.send_message(message.chat.id, 'Неправильный номер группы, попробуйте еще раз')
         bot.register_next_step_handler_by_chat_id(message.chat.id, change_group)
